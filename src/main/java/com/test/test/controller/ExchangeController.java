@@ -22,9 +22,13 @@ public class ExchangeController {
         return ResponseEntity.ok(exchangeService.getAllExchanges());
     }
 
-    @GetMapping("/{country}")
+    @GetMapping("/country/{country}")
     public ResponseEntity<List<Exchange>> getExByCountry(@PathVariable String country) {
         return ResponseEntity.ok(exchangeService.getExchangesByCountry(country));
+    }
+    @GetMapping("/founded/{founded}")
+    public ResponseEntity<List<Exchange>> getExByfounded(@PathVariable Long founded) {
+        return ResponseEntity.ok(exchangeService.getExchangesByfounded(founded));
     }
 
 

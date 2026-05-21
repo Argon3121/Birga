@@ -38,4 +38,13 @@ public class ExchangeService {
         }
         return result;
     }
+    public List<Exchange> getExchangesByfounded(Long founded) {
+        List<Exchange> result = new ArrayList<>();
+        for (var ex : exchanges.values()) {
+            if (ex.getFounded().equals(founded)) {
+                result.add(ex);
+            }
+        }
+        return result;
+    }
 }
