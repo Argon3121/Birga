@@ -1,38 +1,43 @@
 package com.test.test.model;
 
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
-import java.util.HashMap;
-import java.util.Map;
 
+@Entity
+@Table(name = "sellers")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 public class Seller {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(nullable = false)
     private String name;
+
     private String email;
     private String phone;
     private BigDecimal balance;
     private boolean active;
 
-    // Курсы продажи (сколько стоит валюта)
-    private Map<String, BigDecimal> sellRates = new HashMap<>();
+    // Курсы для USD
+    private BigDecimal usdBuyRate;
+    private BigDecimal usdSellRate;
 
-    // Курсы покупки (за сколько продавец покупает валюту)
-    private Map<String, BigDecimal> buyRates = new HashMap<>();
+    // Курсы для EUR
+    private BigDecimal eurBuyRate;
+    private BigDecimal eurSellRate;
+
+    // Курсы для RUB
+    private BigDecimal rubBuyRate;
+    private BigDecimal rubSellRate;
+
+    // Курсы для KZT
+    private BigDecimal kztBuyRate;
+    private BigDecimal kztSellRate;
 }
-/* Купить 50 долларов за евро
-POST /api/sellers/1/buy?code=USD&amount=50&payCode=EUR
-50 × 1.02 = 51 евро
-
-Купить 1000 рублей за доллары
-POST /api/sellers/1/buy?code=RUB&amount=1000&payCode=USD
-1000 × 0.0112 = 11.2 доллара
-
-Купить у другого продавца (ID=2)
-POST /api/sellers/2/buy?code=EUR&amount=100&payCode=USD
-У продавца №2 курс евро = 1.12, значит 100 × 1.12 = 112 долларов*/
