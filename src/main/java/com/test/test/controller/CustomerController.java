@@ -6,12 +6,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/customers")
 public class CustomerController {
+
     @Autowired
     private CustomerService customerService;
 
@@ -40,20 +40,15 @@ public class CustomerController {
         return new ResponseEntity<>(created, HttpStatus.CREATED);
     }
 
-    @PutMapping("/{id}/balance")
-    public ResponseEntity<Customer> updateBalance(@PathVariable Long id, @RequestParam double amount) {
-        Customer updated = customerService.updateBalance(id, amount);
-        if (updated != null) {
-            return ResponseEntity.ok(updated);
-        }
-        return ResponseEntity.notFound().build();
-    }
-
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteCustomer(@PathVariable Long id) {
-        if (customerService.deleteCustomer(id)) {
-            return ResponseEntity.noContent().build();
-        }
-        return ResponseEntity.notFound().build();
+        customerService.deleteCustomer(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/create_customer")
+    @ResponseStatus(HttpStatus.CREATED)
+    public Customer create(@RequestBody Customer customer) {
+        return customerService.createCustomer(customer);
     }
 }
