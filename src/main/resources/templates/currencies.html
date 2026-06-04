@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="base :: head"></head>
+<body>
+<div th:replace="base :: body(pageTitle='Управление валютами', pageContent=~{::content})"></div>
+
+<div th:fragment="content">
+    <div class="mb-4 flex justify-between">
+        <button onclick="openModal('currencyModal')" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700">
+            <i class="fas fa-plus mr-2"></i>Добавить валюту
+        </button>
+        <div class="flex gap-2">
+            <input type="text" id="searchInput" placeholder="Поиск..." class="border rounded-lg px-3 py-2">
+            <select id="filterActive" class="border rounded-lg px-3 py-2">
+                <option value="all">Все</option>
+                <option value="true">Активные</option>
+                <option value="false">Неактивные</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead class="bg-gray-100">
+            <tr>
+                <th class="p-3 text-left">ID</th>
+                <th class="p-3 text-left">Код</th>
+                <th class="p-3 text-left">Название</th>
+                <th class="p-3 text-left">Символ</th>
+                <th class="p-3 text-left">Курс к CNY</th>
+                <th class="p-3 text-left">Страна</th>
+                <th class="p-3 text-left">Статус</th>
+                <th class="p-3 text-left">Действия</th>
+            </tr>
+            </thead>
+            <tbody id="tableBody">
+            <tr th:each="c : ${currencies}">
+                <td class="p-3 border-b" th:text="${c.id}"></td>
+                <td class="p-3 border-b" th:text="${c.code}"></td>
+                <td class="p-3 border-b" th:text="${c.name}"></td>
+                <td class="p-3 border-b" th:text="${c.symbol}"></td>
+                <td class="p-3 border-b" th:text="${c.rateToCNY}"></td>
+                <td class="p-3 border-b" th:text="${c.country}"></td>
+                <td class="p-3 border-b">
+                    <span th:if="${c.active}" class="bg-green-100 text-green-700 px-2 py-1 rounded text-sm">Активна</span>
+                    <span th:unless="${c.active}" class="bg-red-100 text-red-700 px-2 py-1 rounded text-sm">Неактивна</span>
+                </td>
+                <td class="p-3 border-b">
+                    <button onclick='editCurrency(this)' data-id="${c.id}" data-code="${c.code}" data-name="${c.name}" data-symbol="${c.symbol}" data-rate="${c.rateToCNY}" data-country="${c.country}" data-active="${c.active}" class="text-blue-600 mr-2"><i class="fas fa-edit"></i></button>
+                    <button onclick="deleteCurrency(${c.id})" class="text-red-600"><i class="fas fa-trash"></i></button>
+                </td>
+            </tr>
+            <tr th:if="${currencies == null or currencies.empty}">
+                <td colspan="8" class="p-8 text-center text-gray-400">Нет данных. Добавьте первую валюту</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Modal -->
+    <div id="currencyModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-lg w-full max-w-md p-6">
+            <h2 class="text-xl font-bold mb-4" id="modalTitle">Добавить валюту</h2>
+            <form id="currencyForm" onsubmit="saveCurrency(event)">
+                <input type="hidden" id="currencyId">
+                <div class="mb-3">
+                    <label class="block text-sm font-medium mb-1">Код *</label>
+                    <input type="text" id="code" required class="w-full border rounded-lg px-3 py-2">
+                </div>
+                <div class="mb-3">
+                    <label class="block text-sm font-medium mb-1">Название *</label>
+                    <input type="text" id="name" required class="w-full border rounded-lg px-3 py-2">
+                </div>
+                <div class="mb-3">
+                    <label class="block text-sm font-medium mb-1">Символ</label>
+                    <input type="text" id="symbol" class="w-full border rounded-lg px-3 py-2" maxlength="3">
+                </div>
+                <div class="mb-3">
+                    <label class="block text-sm font-medium mb-1">Курс к CNY *</label>
+                    <input type="number" step="0.0001" id="rateToCNY" required class="w-full border rounded-lg px-3 py-2">
+                </div>
+                <div class="mb-3">
+                    <label class="block text-sm font-medium mb-1">Страна</label>
+                    <input type="text" id="country" class="w-full border rounded-lg px-3 py-2">
+                </div>
+                <div class="mb-4">
+                    <label class="flex items-center">
+                        <input type="checkbox" id="active" class="mr-2"> Активна
+                    </label>
+                </div>
+                <div class="flex gap-2">
+                    <button type="submit" class="flex-1 bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700">Сохранить</button>
+                    <button type="button" onclick="closeModal('currencyModal')" class="flex-1 bg-gray-300 py-2 rounded-lg hover:bg-gray-400">Отмена</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function saveCurrency(event) {
+        event.preventDefault();
+        var id = $('#currencyId').val();
+        var data = {
+            code: $('#code').val().toUpperCase(),
+            name: $('#name').val(),
+            symbol: $('#symbol').val(),
+            rateToCNY: parseFloat($('#rateToCNY').val()),
+            country: $('#country').val(),
+            active: $('#active').is(':checked')
+        };
+        if (id) data.id = parseInt(id);
+
+        $.ajax({
+            url: '/api/currencies',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(data),
+            success: function() {
+                showToast(id ? 'Валюта обновлена' : 'Валюта создана', 'success');
+                closeModal('currencyModal');
+                setTimeout(function() { location.reload(); }, 500);
+            },
+            error: function() { showToast('Ошибка сохранения', 'error'); }
+        });
+    }
+
+    function editCurrency(btn) {
+        var row = $(btn).closest('tr');
+        $('#currencyId').val($(btn).data('id'));
+        $('#code').val($(btn).data('code'));
+        $('#name').val($(btn).data('name'));
+        $('#symbol').val($(btn).data('symbol'));
+        $('#rateToCNY').val($(btn).data('rate'));
+        $('#country').val($(btn).data('country'));
+        $('#active').prop('checked', $(btn).data('active') === true);
+        $('#modalTitle').text('Редактировать валюту');
+        openModal('currencyModal');
+    }
+
+    function deleteCurrency(id) {
+        if (confirm('Удалить валюту?')) {
+            $.ajax({
+                url: '/api/currencies/' + id,
+                method: 'DELETE',
+                success: function() {
+                    showToast('Валюта удалена', 'success');
+                    location.reload();
+                },
+                error: function() { showToast('Ошибка удаления', 'error'); }
+            });
+        }
+    }
+
+    $('#searchInput').on('keyup', function() {
+        var val = $(this).val().toLowerCase();
+        $('#tableBody tr').each(function() {
+            var text = $(this).text().toLowerCase();
+            $(this).toggle(text.indexOf(val) > -1);
+        });
+    });
+
+    $('#filterActive').on('change', function() {
+        var val = $(this).val();
+        $('#tableBody tr').each(function() {
+            var status = $(this).find('td:eq(6)').text().trim();
+            if (val === 'all') $(this).show();
+            else if (val === 'true') $(this).toggle(status === 'Активна');
+            else $(this).toggle(status === 'Неактивна');
+        });
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="base :: head"></head>
+<body>
+<div th:replace="base :: body(pageTitle='Торги и обмен', pageContent=~{::content})"></div>
+
+<div th:fragment="content">
+    <!-- Form -->
+    <div class="bg-gray-50 rounded-lg p-6 mb-6">
+        <h3 class="text-lg font-bold mb-4">Исполнить обмен RUB → Другая валюта</h3>
+        <form id="tradeForm" onsubmit="executeTrade(event)" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium mb-1">ID пользователя *</label>
+                <input type="number" id="userId" required class="w-full border rounded-lg px-3 py-2">
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Валюта получения</label>
+                <select id="toCurrency" class="w-full border rounded-lg px-3 py-2">
+                    <option value="USD">🇺🇸 USD - Доллар США</option>
+                    <option value="EUR">🇪🇺 EUR - Евро</option>
+                    <option value="CNY">🇨🇳 CNY - Юань</option>
+                </select>
+            </div>
+            <div class="md:col-span-2">
+                <label class="block text-sm font-medium mb-1">Сумма в RUB *</label>
+                <input type="number" step="0.01" id="amount" required class="w-full border rounded-lg px-3 py-2">
+            </div>
+            <div class="md:col-span-2 bg-purple-50 rounded-lg p-4">
+                <div class="flex justify-between items-center">
+                    <span>Курс:</span>
+                    <span class="font-bold" id="rateDisplay">1 USD = 71.50 RUB</span>
+                </div>
+                <div class="flex justify-between items-center mt-2">
+                    <span>Вы получите:</span>
+                    <span class="text-xl font-bold text-green-600" id="resultDisplay">0.00</span>
+                </div>
+            </div>
+            <div class="md:col-span-2">
+                <button type="submit" class="w-full bg-purple-600 text-white py-3 rounded-lg hover:bg-purple-700">
+                    <i class="fas fa-exchange-alt mr-2"></i>Исполнить обмен
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- History -->
+    <h3 class="font-bold text-lg mb-3">История сделок</h3>
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead class="bg-gray-100">
+            <tr>
+                <th class="p-3 text-left">ID</th>
+                <th class="p-3 text-left">Пользователь</th>
+                <th class="p-3 text-left">Сумма (RUB)</th>
+                <th class="p-3 text-left">Получено</th>
+                <th class="p-3 text-left">Валюта</th>
+                <th class="p-3 text-left">Дата</th>
+            </tr>
+            </thead>
+            <tbody id="historyBody">
+            <tr th:each="t : ${trades}">
+                <td class="p-3 border-b" th:text="${t.id}"></td>
+                <td class="p-3 border-b" th:text="${t.userId}"></td>
+                <td class="p-3 border-b" th:text="${t.value_t}"></td>
+                <td class="p-3 border-b text-green-600" th:text="'Идет расчет'"></td>
+                <td class="p-3 border-b" th:text="${t.to_currency}"></td>
+                <td class="p-3 border-b text-gray-500">Новая</td>
+            </tr>
+            <tr th:if="${trades == null or trades.empty}" id="emptyRow">
+                <td colspan="6" class="p-8 text-center text-gray-400">Нет сделок. Выполните первый обмен</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    var rates = { USD: 71.50, EUR: 76.20, CNY: 9.85 };
+
+    $('#amount, #toCurrency').on('input change', function() {
+        var amount = parseFloat($('#amount').val());
+        var currency = $('#toCurrency').val();
+        if (!isNaN(amount) && amount > 0) {
+            var rate = rates[currency];
+            var result = amount / rate;
+            $('#resultDisplay').text(result.toFixed(2) + ' ' + currency);
+            $('#rateDisplay').text('1 ' + currency + ' = ' + rate.toFixed(2) + ' RUB');
+        } else {
+            $('#resultDisplay').text('0.00');
+        }
+    });
+
+    function executeTrade(event) {
+        event.preventDefault();
+        var userId = parseInt($('#userId').val());
+        var amount = parseFloat($('#amount').val());
+        var currency = $('#toCurrency').val();
+
+        if (!userId || isNaN(amount) || amount <= 0) {
+            showToast('Заполните все поля', 'error');
+            return;
+        }
+
+        var submitBtn = $(event.target).find('button[type="submit"]');
+        var originalHtml = submitBtn.html();
+        submitBtn.html('<i class="fas fa-spinner fa-spin"></i> Обработка...').prop('disabled', true);
+
+        var tradeData = { userId: userId, value_t: amount, to_currency: currency };
+
+        $.ajax({
+            url: '/api/trades/complite_exchange',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(tradeData),
+            success: function(response) {
+                var received = response;
+                showToast('Обмен выполнен! Получено ' + received + ' ' + currency, 'success');
+
+                var row = '<tr><td class="p-3 border-b">#' + Date.now() + '</td><td class="p-3 border-b">' + userId + '</td><td class="p-3 border-b">' + amount + ' ₽</td><td class="p-3 border-b text-green-600 font-bold">' + received + ' ' + currency + '</td><td class="p-3 border-b">' + currency + '</td><td class="p-3 border-b text-gray-500">Только что</td></tr>';
+                $('#historyBody').prepend(row);
+                $('#emptyRow').hide();
+                $('#tradeForm')[0].reset();
+                $('#resultDisplay').text('0.00');
+            },
+            error: function() { showToast('Ошибка выполнения обмена', 'error'); },
+            complete: function() { submitBtn.html(originalHtml).prop('disabled', false); }
+        });
+    }
+
+    $('#amount').trigger('input');
+</script>
+</body>
+</html>

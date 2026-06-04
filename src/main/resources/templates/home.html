@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Главная</title>
+    <link href="https://cdn.tailwindcss.com" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+<div class="container mx-auto p-8">
+    <h1 class="text-3xl font-bold mb-6">Currency Exchange Dashboard</h1>
+
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-xl font-semibold mb-4">Последние валюты</h2>
+        <div th:if="${recentCurrencies != null && !recentCurrencies.empty}">
+            <div th:each="currency : ${recentCurrencies}" class="border-b py-2">
+                <p><strong th:text="${currency.code}"></strong> - <span th:text="${currency.name}"></span></p>
+                <p>Курс: <span th:text="${currency.rateToCNY}"></span> CNY</p>
+            </div>
+        </div>
+        <div th:unless="${recentCurrencies != null && !recentCurrencies.empty}" class="text-gray-500">
+            Нет данных о валютах. Добавьте первую валюту через CRUD операции.
+        </div>
+    </div>
+</div>
+</body>
+</html>
